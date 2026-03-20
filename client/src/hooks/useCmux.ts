@@ -79,14 +79,16 @@ export function useCmux() {
 
   const selectWorkspace = useCallback(
     async (ref: string) => {
-      await rpc("workspace.select", { workspace_ref: ref });
+      // PWA側の表示切替のみ。ローカルcmuxのフォーカスは変更しない。
       setCurrentWorkspace(ref);
     },
-    [rpc]
+    []
   );
 
-  const listPanes = useCallback(async () => {
-    const result = (await rpc("pane.list")) as { panes: Pane[] };
+  const listPanes = useCallback(async (workspaceRef?: string) => {
+    const params: Record<string, unknown> = {};
+    if (workspaceRef) params.workspace_ref = workspaceRef;
+    const result = (await rpc("pane.list", params)) as { panes: Pane[] };
     const paneList = result.panes ?? [];
     setPanes(paneList);
     const active = paneList.find((p) => p.focused);

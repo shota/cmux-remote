@@ -38,6 +38,12 @@ export function App() {
       .catch((err) => console.error("[app] Init error:", err));
   }, [status, listWorkspaces, listPanes]);
 
+  // Re-fetch panes when workspace changes
+  useEffect(() => {
+    if (status !== "connected" || !currentWorkspace) return;
+    listPanes(currentWorkspace).catch(() => {});
+  }, [status, currentWorkspace, listPanes]);
+
   // Poll terminal content using workspace_ref
   useEffect(() => {
     if (status !== "connected" || !currentWorkspace) {
@@ -115,9 +121,8 @@ export function App() {
         workspaces={workspaces}
         currentWorkspace={currentWorkspace}
         notifications={notifications}
-        onSelect={(id) => {
-          selectWorkspace(id);
-          listPanes();
+        onSelect={(ref) => {
+          selectWorkspace(ref);
         }}
         onClose={() => setDrawerOpen(false)}
       />
@@ -143,6 +148,8 @@ export function App() {
         <StatusBar
           status={status}
           paneName={currentPaneInfo?.ref ?? currentPane}
+          paneIndex={panes.findIndex((p) => p.selected_surface_ref === currentPane)}
+          paneCount={panes.length}
         />
       </div>
     </div>

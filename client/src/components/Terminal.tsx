@@ -58,8 +58,11 @@ export function Terminal({ content, gestureRef }: TerminalProps) {
     if (content === prevContentRef.current) return;
     prevContentRef.current = content;
 
+    // Strip trailing whitespace from each line to prevent wrapping artifacts
+    // caused by cmux read-screen padding lines to full terminal width
+    const cleaned = content.split("\n").map((line) => line.trimEnd()).join("\n");
     term.clear();
-    term.write(content);
+    term.write(cleaned);
   }, [content]);
 
   const setRefs = useCallback(

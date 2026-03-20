@@ -3,6 +3,8 @@ import type { ConnectionStatus } from "../hooks/useWebSocket";
 interface StatusBarProps {
   status: ConnectionStatus;
   paneName: string | null;
+  paneIndex: number;
+  paneCount: number;
 }
 
 const STATUS_CONFIG: Record<
@@ -14,7 +16,7 @@ const STATUS_CONFIG: Record<
   disconnected: { label: "Disconnected", color: "#f44336" },
 };
 
-export function StatusBar({ status, paneName }: StatusBarProps) {
+export function StatusBar({ status, paneName, paneIndex, paneCount }: StatusBarProps) {
   const config = STATUS_CONFIG[status];
 
   return (
@@ -33,7 +35,25 @@ export function StatusBar({ status, paneName }: StatusBarProps) {
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
-      <span>{paneName ?? ""}</span>
+      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span>{paneName ?? ""}</span>
+        {paneCount > 1 && (
+          <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+            {Array.from({ length: paneCount }, (_, i) => (
+              <span
+                key={i}
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  backgroundColor: i === paneIndex ? "#e0e0e0" : "#444",
+                  display: "inline-block",
+                }}
+              />
+            ))}
+          </span>
+        )}
+      </span>
       <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <span
           style={{

@@ -1,10 +1,6 @@
-const CACHE_NAME = "cmux-remote-v1";
-const SHELL_FILES = ["/", "/index.html"];
+const CACHE_NAME = "cmux-remote-v3";
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_FILES))
-  );
   self.skipWaiting();
 });
 
@@ -29,18 +25,16 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Network First: try network, fall back to cache
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return (
-        cached ||
-        fetch(event.request).then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, clone);
-          });
-          return response;
-        })
-      );
-    })
+    fetch(event.request)
+      .then((response) => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, clone);
+        });
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
