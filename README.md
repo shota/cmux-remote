@@ -60,6 +60,7 @@ Open `http://<your-host>:3456` in Safari and add to home screen.
 |---|---|---|
 | `PORT` | `3456` | Bridge server port |
 | `CMUX_SOCKET_PATH` | `~/Library/Application Support/cmux/cmux.sock` | cmux Unix socket path |
+| `CMUX_BIN_PATH` | `/Applications/cmux.app/Contents/Resources/bin/cmux` | cmux binary path |
 
 ## Development
 

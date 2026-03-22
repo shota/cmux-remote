@@ -1,6 +1,6 @@
 import type { ServerWebSocket } from "bun";
 
-const CMUX_BIN = "/Applications/cmux.app/Contents/Resources/bin/cmux";
+const CMUX_BIN = process.env.CMUX_BIN_PATH ?? "/Applications/cmux.app/Contents/Resources/bin/cmux";
 
 // Methods that need CLI execution due to socket API fallback bug
 const CLI_METHODS: Record<string, (params: Record<string, unknown>) => string[]> = {
