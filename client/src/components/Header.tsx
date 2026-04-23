@@ -1,10 +1,18 @@
 interface HeaderProps {
   workspaceName: string | null;
   onMenuToggle: () => void;
+  onCompose: () => void;
+  onOpenKeyModal: () => void;
   showMenuButton?: boolean;
 }
 
-export function Header({ workspaceName, onMenuToggle, showMenuButton = true }: HeaderProps) {
+export function Header({
+  workspaceName,
+  onMenuToggle,
+  onCompose,
+  onOpenKeyModal,
+  showMenuButton = true,
+}: HeaderProps) {
   return (
     <header
       style={{
@@ -37,6 +45,7 @@ export function Header({ workspaceName, onMenuToggle, showMenuButton = true }: H
       )}
       <span
         style={{
+          flex: 1,
           marginLeft: showMenuButton ? 8 : 4,
           fontSize: 15,
           fontWeight: 600,
@@ -47,6 +56,47 @@ export function Header({ workspaceName, onMenuToggle, showMenuButton = true }: H
       >
         {workspaceName ?? "cmux Remote"}
       </span>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          flexShrink: 0,
+        }}
+      >
+        <button
+          onClick={onOpenKeyModal}
+          aria-label="Send special key"
+          style={{
+            background: "none",
+            border: "1px solid #40506f",
+            borderRadius: 8,
+            color: "#e0e0e0",
+            fontSize: 13,
+            padding: "6px 10px",
+            cursor: "pointer",
+            lineHeight: 1,
+          }}
+        >
+          Key
+        </button>
+        <button
+          onClick={onCompose}
+          aria-label="Send text"
+          style={{
+            background: "none",
+            border: "1px solid #40506f",
+            borderRadius: 8,
+            color: "#e0e0e0",
+            fontSize: 13,
+            padding: "6px 10px",
+            cursor: "pointer",
+            lineHeight: 1,
+          }}
+        >
+          Send
+        </button>
+      </div>
     </header>
   );
 }

@@ -3,10 +3,24 @@ import { Terminal } from "./components/Terminal";
 import { Header } from "./components/Header";
 import { Drawer, SIDEBAR_WIDTH, DESKTOP_BREAKPOINT } from "./components/Drawer";
 import { StatusBar } from "./components/StatusBar";
+import { ComposerModal } from "./components/ComposerModal";
+import { KeyModal } from "./components/KeyModal";
 import { useCmux } from "./hooks/useCmux";
 import { useGesture } from "./hooks/useGesture";
 
 const POLL_INTERVAL = 1000;
+const SPECIAL_KEYS = [
+  { label: "Ctrl+C", keyValue: "ctrl+c", description: "Interrupt the current process." },
+  { label: "Ctrl+D", keyValue: "ctrl+d", description: "Send EOF to the current shell or process." },
+  { label: "Ctrl+Z", keyValue: "ctrl+z", description: "Suspend the foreground process." },
+  { label: "Esc", keyValue: "escape", description: "Cancel prompts or exit modes like vim insert mode." },
+  { label: "Tab", keyValue: "tab", description: "Trigger completion or move focus forward." },
+  { label: "Enter", keyValue: "enter", description: "Submit the current command line." },
+  { label: "Up", keyValue: "up", description: "Recall previous command history." },
+  { label: "Down", keyValue: "down", description: "Move down through command history." },
+  { label: "Left", keyValue: "left", description: "Move cursor left." },
+  { label: "Right", keyValue: "right", description: "Move cursor right." },
+] as const;
 
 export function App() {
   const {
@@ -20,12 +34,21 @@ export function App() {
     selectWorkspace,
     listPanes,
     readText,
+    sendText,
+    sendKey,
     listNotifications,
     navigateWorkspace,
     navigatePane,
   } = useCmux();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [keyModalOpen, setKeyModalOpen] = useState(false);
+  const [composerText, setComposerText] = useState("");
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [keyError, setKeyError] = useState<string | null>(null);
+  const [keySending, setKeySending] = useState(false);
   const [termContent, setTermContent] = useState("");
   const pollRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
@@ -150,6 +173,97 @@ export function App() {
   const currentWs = workspaces.find((w) => w.ref === currentWorkspace);
   const currentPaneInfo = panes.find((p) => p.ref === currentPane);
 
+  const openComposer = useCallback(() => {
+    setKeyModalOpen(false);
+    setSendError(null);
+    setComposerOpen(true);
+  }, []);
+
+  const openKeyModal = useCallback(() => {
+    setComposerOpen(false);
+    setKeyError(null);
+    setKeyModalOpen(true);
+  }, []);
+
+  const closeComposer = useCallback(() => {
+    if (sending) return;
+    setComposerOpen(false);
+    setSendError(null);
+  }, [sending]);
+
+  const closeKeyModal = useCallback(() => {
+    if (keySending) return;
+    setKeyModalOpen(false);
+    setKeyError(null);
+  }, [keySending]);
+
+  const handleSubmitComposer = useCallback(async () => {
+    if (sending) return;
+    const trimmed = composerText.trim();
+    if (!trimmed) return;
+
+    const payload = composerText.endsWith("\n") ? composerText : `${composerText}\n`;
+    const surfaceRef = currentPaneInfo?.selected_surface_ref;
+    const workspaceRef = currentWorkspace ?? undefined;
+
+    if (!surfaceRef && !workspaceRef) {
+      setSendError("No active terminal target is available.");
+      return;
+    }
+
+    try {
+      setSending(true);
+      setSendError(null);
+      await sendText({ surfaceRef, workspaceRef }, payload);
+
+      if (workspaceRef) {
+        const text = await readText(workspaceRef);
+        setTermContent(text);
+      }
+
+      setComposerText("");
+      setComposerOpen(false);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setSendError(message);
+    } finally {
+      setSending(false);
+    }
+  }, [composerText, currentPaneInfo, currentWorkspace, readText, sendText, sending]);
+
+  const handleSendKey = useCallback(
+    async (keyValue: string) => {
+      if (keySending) return;
+
+      const surfaceRef = currentPaneInfo?.selected_surface_ref;
+      const workspaceRef = currentWorkspace ?? undefined;
+
+      if (!surfaceRef && !workspaceRef) {
+        setKeyError("No active terminal target is available.");
+        return;
+      }
+
+      try {
+        setKeySending(true);
+        setKeyError(null);
+        await sendKey({ surfaceRef, workspaceRef }, keyValue);
+
+        if (workspaceRef) {
+          const text = await readText(workspaceRef);
+          setTermContent(text);
+        }
+
+        setKeyModalOpen(false);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        setKeyError(message);
+      } finally {
+        setKeySending(false);
+      }
+    },
+    [currentPaneInfo, currentWorkspace, keySending, readText, sendKey]
+  );
+
   return (
     <div
       style={{
@@ -186,10 +300,12 @@ export function App() {
         <Header
           workspaceName={currentWs?.title ?? null}
           onMenuToggle={() => setDrawerOpen((o) => !o)}
+          onCompose={openComposer}
+          onOpenKeyModal={openKeyModal}
           showMenuButton={!isDesktop}
         />
 
-        <Terminal content={termContent} gestureRef={gestureRef} />
+        <Terminal content={termContent} gestureRef={gestureRef} onOpenComposer={openComposer} />
 
         <StatusBar
           status={status}
@@ -198,6 +314,25 @@ export function App() {
           paneCount={panes.length}
         />
       </div>
+
+      <ComposerModal
+        open={composerOpen}
+        value={composerText}
+        error={sendError}
+        sending={sending}
+        onChange={setComposerText}
+        onClose={closeComposer}
+        onSubmit={handleSubmitComposer}
+      />
+
+      <KeyModal
+        open={keyModalOpen}
+        sending={keySending}
+        error={keyError}
+        options={[...SPECIAL_KEYS]}
+        onClose={closeKeyModal}
+        onSelect={handleSendKey}
+      />
     </div>
   );
 }

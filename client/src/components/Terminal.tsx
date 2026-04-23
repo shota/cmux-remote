@@ -6,9 +6,10 @@ import "@xterm/xterm/css/xterm.css";
 interface TerminalProps {
   content: string;
   gestureRef: (el: HTMLDivElement | null) => void;
+  onOpenComposer: () => void;
 }
 
-export function Terminal({ content, gestureRef }: TerminalProps) {
+export function Terminal({ content, gestureRef, onOpenComposer }: TerminalProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const termRef = useRef<XTerm | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
@@ -37,6 +38,19 @@ export function Terminal({ content, gestureRef }: TerminalProps) {
     term.open(containerRef.current);
     fit.fit();
 
+    const textarea = (term as XTerm & { textarea?: HTMLTextAreaElement }).textarea;
+    const handleTextareaFocus = () => {
+      textarea?.blur();
+    };
+
+    if (textarea) {
+      textarea.readOnly = true;
+      textarea.tabIndex = -1;
+      textarea.setAttribute("inputmode", "none");
+      textarea.setAttribute("aria-hidden", "true");
+      textarea.addEventListener("focus", handleTextareaFocus);
+    }
+
     termRef.current = term;
     fitRef.current = fit;
 
@@ -46,6 +60,7 @@ export function Terminal({ content, gestureRef }: TerminalProps) {
     resizeObserver.observe(containerRef.current);
 
     return () => {
+      textarea?.removeEventListener("focus", handleTextareaFocus);
       resizeObserver.disconnect();
       term.dispose();
     };
@@ -75,6 +90,7 @@ export function Terminal({ content, gestureRef }: TerminalProps) {
   return (
     <div
       ref={setRefs}
+      onClick={onOpenComposer}
       style={{
         flex: 1,
         width: "100%",

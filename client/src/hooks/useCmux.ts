@@ -16,6 +16,16 @@ interface PendingRequest {
 
 const RPC_TIMEOUT = 10_000;
 
+interface SendTextTarget {
+  surfaceRef?: string;
+  workspaceRef?: string;
+}
+
+interface SendKeyTarget {
+  surfaceRef?: string;
+  workspaceRef?: string;
+}
+
 export function useCmux() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<string | null>(null);
@@ -117,8 +127,21 @@ export function useCmux() {
   );
 
   const sendText = useCallback(
-    async (surfaceRef: string, text: string) => {
-      await rpc("surface.send_text", { surface_ref: surfaceRef, text });
+    async ({ surfaceRef, workspaceRef }: SendTextTarget, text: string) => {
+      const params: Record<string, unknown> = { text };
+      if (surfaceRef) params.surface_ref = surfaceRef;
+      if (workspaceRef) params.workspace_ref = workspaceRef;
+      await rpc("surface.send_text", params);
+    },
+    [rpc]
+  );
+
+  const sendKey = useCallback(
+    async ({ surfaceRef, workspaceRef }: SendKeyTarget, key: string) => {
+      const params: Record<string, unknown> = { key };
+      if (surfaceRef) params.surface_ref = surfaceRef;
+      if (workspaceRef) params.workspace_ref = workspaceRef;
+      await rpc("surface.send_key", params);
     },
     [rpc]
   );
@@ -175,6 +198,7 @@ export function useCmux() {
     focusPane,
     readText,
     sendText,
+    sendKey,
     getTree,
     listNotifications,
     navigateWorkspace,
