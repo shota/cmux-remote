@@ -92,14 +92,16 @@ export function useCmux() {
     const paneList = result.panes ?? [];
     setPanes(paneList);
     const active = paneList.find((p) => p.focused);
-    if (active) setCurrentPane(active.selected_surface_ref);
+    if (active) setCurrentPane(active.ref);
     return paneList;
   }, [rpc]);
 
-  const focusSurface = useCallback(
-    async (surfaceRef: string) => {
-      await rpc("surface.focus", { surface_ref: surfaceRef });
-      setCurrentPane(surfaceRef);
+  const focusPane = useCallback(
+    async (paneRef: string, workspaceRef?: string) => {
+      const params: Record<string, unknown> = { pane_ref: paneRef };
+      if (workspaceRef) params.workspace_ref = workspaceRef;
+      await rpc("pane.focus", params);
+      setCurrentPane(paneRef);
     },
     [rpc]
   );
@@ -149,15 +151,15 @@ export function useCmux() {
   const navigatePane = useCallback(
     async (direction: "next" | "prev") => {
       if (panes.length === 0) return;
-      const idx = panes.findIndex((p) => p.selected_surface_ref === currentPane);
+      const idx = panes.findIndex((p) => p.ref === currentPane);
       const nextIdx =
         direction === "next"
           ? (idx + 1) % panes.length
           : (idx - 1 + panes.length) % panes.length;
       const target = panes[nextIdx];
-      if (target) await focusSurface(target.selected_surface_ref);
+      if (target) await focusPane(target.ref, currentWorkspace ?? undefined);
     },
-    [panes, currentPane, focusSurface]
+    [panes, currentPane, currentWorkspace, focusPane]
   );
 
   return {
@@ -170,7 +172,7 @@ export function useCmux() {
     listWorkspaces,
     selectWorkspace,
     listPanes,
-    focusSurface,
+    focusPane,
     readText,
     sendText,
     getTree,

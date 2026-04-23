@@ -104,7 +104,7 @@ export function App() {
   }, []);
 
   const currentWs = workspaces.find((w) => w.ref === currentWorkspace);
-  const currentPaneInfo = panes.find((p) => p.selected_surface_ref === currentPane);
+  const currentPaneInfo = panes.find((p) => p.ref === currentPane);
 
   return (
     <div
@@ -148,7 +148,7 @@ export function App() {
         <StatusBar
           status={status}
           paneName={currentPaneInfo?.ref ?? currentPane}
-          paneIndex={panes.findIndex((p) => p.selected_surface_ref === currentPane)}
+          paneIndex={panes.findIndex((p) => p.ref === currentPane)}
           paneCount={panes.length}
         />
       </div>

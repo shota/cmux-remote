@@ -22,6 +22,12 @@ const CLI_METHODS: Record<string, (params: Record<string, unknown>) => string[]>
     else if (p.surface_ref) args.push("--surface", String(p.surface_ref));
     return [...args, String(p.key ?? "return")];
   },
+  "pane.focus": (p) => {
+    const args = ["focus-pane"];
+    if (p.workspace_ref) args.push("--workspace", String(p.workspace_ref));
+    args.push("--pane", String(p.pane_ref ?? ""));
+    return args;
+  },
 };
 
 async function execCmuxCli(method: string, params: Record<string, unknown>, id: string): Promise<string> {
