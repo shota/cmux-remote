@@ -19,7 +19,7 @@ export function Terminal({ content, gestureRef }: TerminalProps) {
 
     const term = new XTerm({
       cursorBlink: false,
-      fontSize: 13,
+      fontSize: 10,
       fontFamily: "'Menlo', 'Monaco', 'Courier New', monospace",
       theme: {
         background: "#1a1a2e",
@@ -67,7 +67,6 @@ export function Terminal({ content, gestureRef }: TerminalProps) {
 
   const setRefs = useCallback(
     (el: HTMLDivElement | null) => {
-      containerRef.current = el;
       gestureRef(el);
     },
     [gestureRef]
@@ -81,7 +80,16 @@ export function Terminal({ content, gestureRef }: TerminalProps) {
         width: "100%",
         overflow: "hidden",
         touchAction: "none",
+        padding: "0 8px",
       }}
-    />
+    >
+      <div
+        ref={containerRef}
+        style={{
+          height: "100%",
+          width: "100%",
+        }}
+      />
+    </div>
   );
 }

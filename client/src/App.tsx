@@ -29,6 +29,50 @@ export function App() {
   const [termContent, setTermContent] = useState("");
   const pollRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    let rafId = 0;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    const applyViewportSize = () => {
+      const viewport = window.visualViewport;
+      const height = viewport?.height ?? window.innerHeight;
+      const width = viewport?.width ?? window.innerWidth;
+      document.documentElement.style.setProperty("--app-height", `${Math.round(height)}px`);
+      document.documentElement.style.setProperty("--app-width", `${Math.round(width)}px`);
+    };
+
+    const syncViewportSize = () => {
+      cancelAnimationFrame(rafId);
+      if (timeoutId) clearTimeout(timeoutId);
+
+      rafId = requestAnimationFrame(() => {
+        applyViewportSize();
+        timeoutId = setTimeout(applyViewportSize, 250);
+      });
+    };
+
+    syncViewportSize();
+
+    const viewport = window.visualViewport;
+    window.addEventListener("resize", syncViewportSize);
+    window.addEventListener("orientationchange", syncViewportSize);
+    window.addEventListener("pageshow", syncViewportSize);
+    viewport?.addEventListener("resize", syncViewportSize);
+    viewport?.addEventListener("scroll", syncViewportSize);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      if (timeoutId) clearTimeout(timeoutId);
+      window.removeEventListener("resize", syncViewportSize);
+      window.removeEventListener("orientationchange", syncViewportSize);
+      window.removeEventListener("pageshow", syncViewportSize);
+      viewport?.removeEventListener("resize", syncViewportSize);
+      viewport?.removeEventListener("scroll", syncViewportSize);
+    };
+  }, []);
+
   // Initial data fetch
   useEffect(() => {
     if (status !== "connected") return;
@@ -110,7 +154,9 @@ export function App() {
     <div
       style={{
         display: "flex",
-        height: "100dvh",
+        height: "var(--app-height)",
+        width: "var(--app-width)",
+        paddingTop: "env(safe-area-inset-top)",
         backgroundColor: "#1a1a2e",
         color: "#e0e0e0",
         overflow: "hidden",
