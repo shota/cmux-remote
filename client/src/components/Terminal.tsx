@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
+import { applyTerminalHighlights } from "../lib/terminal-highlights";
 
 interface TerminalProps {
   content: string;
@@ -76,8 +77,9 @@ export function Terminal({ content, gestureRef, onOpenComposer }: TerminalProps)
     // Strip trailing whitespace from each line to prevent wrapping artifacts
     // caused by cmux read-screen padding lines to full terminal width
     const cleaned = content.split("\n").map((line) => line.trimEnd()).join("\n");
+    const highlighted = applyTerminalHighlights(cleaned);
     term.clear();
-    term.write(cleaned);
+    term.write(highlighted);
   }, [content]);
 
   const setRefs = useCallback(
