@@ -91,6 +91,8 @@ export function useCmux() {
     async (ref: string) => {
       // PWA側の表示切替のみ。ローカルcmuxのフォーカスは変更しない。
       setCurrentWorkspace(ref);
+      setPanes([]);
+      setCurrentPane(null);
     },
     []
   );
@@ -102,7 +104,7 @@ export function useCmux() {
     const paneList = result.panes ?? [];
     setPanes(paneList);
     const active = paneList.find((p) => p.focused);
-    if (active) setCurrentPane(active.ref);
+    setCurrentPane(active?.ref ?? paneList[0]?.ref ?? null);
     return paneList;
   }, [rpc]);
 
@@ -176,6 +178,11 @@ export function useCmux() {
     async (direction: "next" | "prev") => {
       if (panes.length === 0) return;
       const idx = panes.findIndex((p) => p.ref === currentPane);
+      if (idx === -1) {
+        const target = direction === "next" ? panes[0] : panes[panes.length - 1];
+        if (target) await focusPane(target.ref, currentWorkspace ?? undefined);
+        return;
+      }
       const nextIdx =
         direction === "next"
           ? (idx + 1) % panes.length
