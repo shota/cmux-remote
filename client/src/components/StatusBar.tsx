@@ -5,6 +5,8 @@ interface StatusBarProps {
   paneName: string | null;
   paneIndex: number;
   paneCount: number;
+  paneControlRef: (el: HTMLElement | null) => void;
+  onOpenPanePicker: () => void;
 }
 
 const STATUS_CONFIG: Record<
@@ -16,7 +18,14 @@ const STATUS_CONFIG: Record<
   disconnected: { label: "Disconnected", color: "#f44336" },
 };
 
-export function StatusBar({ status, paneName, paneIndex, paneCount }: StatusBarProps) {
+export function StatusBar({
+  status,
+  paneName,
+  paneIndex,
+  paneCount,
+  paneControlRef,
+  onOpenPanePicker,
+}: StatusBarProps) {
   const config = STATUS_CONFIG[status];
 
   return (
@@ -35,10 +44,34 @@ export function StatusBar({ status, paneName, paneIndex, paneCount }: StatusBarP
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
-      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span>{paneName ?? ""}</span>
+      <button
+        type="button"
+        ref={paneControlRef}
+        onClick={onOpenPanePicker}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          border: "none",
+          background: "transparent",
+          color: "#c1c8d8",
+          minWidth: 0,
+          padding: 0,
+          cursor: "pointer",
+          touchAction: "pan-x",
+        }}
+      >
+        <span
+          style={{
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {paneName ?? ""}
+        </span>
         {paneCount > 1 && (
-          <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
             {Array.from({ length: paneCount }, (_, i) => (
               <span
                 key={i}
@@ -53,7 +86,7 @@ export function StatusBar({ status, paneName, paneIndex, paneCount }: StatusBarP
             ))}
           </span>
         )}
-      </span>
+      </button>
       <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <span
           style={{

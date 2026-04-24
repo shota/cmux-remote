@@ -6,20 +6,20 @@ const CMUX_BIN = process.env.CMUX_BIN_PATH ?? "/Applications/cmux.app/Contents/R
 const CLI_METHODS: Record<string, (params: Record<string, unknown>) => string[]> = {
   "surface.send_text": (p) => {
     const args = ["send"];
-    if (p.workspace_ref) args.push("--workspace", String(p.workspace_ref));
-    else if (p.surface_ref) args.push("--surface", String(p.surface_ref));
+    if (p.surface_ref) args.push("--surface", String(p.surface_ref));
+    else if (p.workspace_ref) args.push("--workspace", String(p.workspace_ref));
     return [...args, String(p.text ?? "")];
   },
   "surface.read_text": (p) => {
     const args = ["read-screen", "--scrollback"];
-    if (p.workspace_ref) args.push("--workspace", String(p.workspace_ref));
-    else if (p.surface_ref) args.push("--surface", String(p.surface_ref));
+    if (p.surface_ref) args.push("--surface", String(p.surface_ref));
+    else if (p.workspace_ref) args.push("--workspace", String(p.workspace_ref));
     return args;
   },
   "surface.send_key": (p) => {
     const args = ["send-key"];
-    if (p.workspace_ref) args.push("--workspace", String(p.workspace_ref));
-    else if (p.surface_ref) args.push("--surface", String(p.surface_ref));
+    if (p.surface_ref) args.push("--surface", String(p.surface_ref));
+    else if (p.workspace_ref) args.push("--workspace", String(p.workspace_ref));
     return [...args, String(p.key ?? "return")];
   },
   "pane.focus": (p) => {

@@ -117,9 +117,10 @@ export function useCmux() {
   );
 
   const readText = useCallback(
-    async (workspaceRef?: string): Promise<string> => {
+    async ({ surfaceRef, workspaceRef }: SendTextTarget = {}): Promise<string> => {
       const params: Record<string, unknown> = {};
-      if (workspaceRef) params.workspace_ref = workspaceRef;
+      if (surfaceRef) params.surface_ref = surfaceRef;
+      else if (workspaceRef) params.workspace_ref = workspaceRef;
       const result = (await rpc("surface.read_text", params)) as { text: string };
       return result.text ?? "";
     },
@@ -130,7 +131,7 @@ export function useCmux() {
     async ({ surfaceRef, workspaceRef }: SendTextTarget, text: string) => {
       const params: Record<string, unknown> = { text };
       if (surfaceRef) params.surface_ref = surfaceRef;
-      if (workspaceRef) params.workspace_ref = workspaceRef;
+      else if (workspaceRef) params.workspace_ref = workspaceRef;
       await rpc("surface.send_text", params);
     },
     [rpc]
@@ -140,7 +141,7 @@ export function useCmux() {
     async ({ surfaceRef, workspaceRef }: SendKeyTarget, key: string) => {
       const params: Record<string, unknown> = { key };
       if (surfaceRef) params.surface_ref = surfaceRef;
-      if (workspaceRef) params.workspace_ref = workspaceRef;
+      else if (workspaceRef) params.workspace_ref = workspaceRef;
       await rpc("surface.send_key", params);
     },
     [rpc]

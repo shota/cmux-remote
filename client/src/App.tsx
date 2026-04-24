@@ -5,8 +5,17 @@ import { Drawer, SIDEBAR_WIDTH, DESKTOP_BREAKPOINT } from "./components/Drawer";
 import { StatusBar } from "./components/StatusBar";
 import { ComposerModal } from "./components/ComposerModal";
 import { KeyModal } from "./components/KeyModal";
+import { PanePickerModal } from "./components/PanePickerModal";
+import { ChoiceModal } from "./components/ChoiceModal";
 import { useCmux } from "./hooks/useCmux";
 import { useGesture } from "./hooks/useGesture";
+import { useSwipe } from "./hooks/useSwipe";
+import { findSurfaceTitle, getLatestNonEmptyLine } from "./lib/pane-preview";
+import {
+  parseTerminalChoices,
+  type TerminalChoiceOption,
+  type TerminalChoicePrompt,
+} from "./lib/terminal-choices";
 
 const POLL_INTERVAL = 1000;
 const SPECIAL_KEYS = [
@@ -33,9 +42,11 @@ export function App() {
     listWorkspaces,
     selectWorkspace,
     listPanes,
+    focusPane,
     readText,
     sendText,
     sendKey,
+    getTree,
     listNotifications,
     navigateWorkspace,
     navigatePane,
@@ -50,6 +61,16 @@ export function App() {
   const [keyError, setKeyError] = useState<string | null>(null);
   const [keySending, setKeySending] = useState(false);
   const [termContent, setTermContent] = useState("");
+  const [panePickerOpen, setPanePickerOpen] = useState(false);
+  const [panePickerLoading, setPanePickerLoading] = useState(false);
+  const [panePickerError, setPanePickerError] = useState<string | null>(null);
+  const [choiceModalOpen, setChoiceModalOpen] = useState(false);
+  const [choicePrompt, setChoicePrompt] = useState<TerminalChoicePrompt | null>(null);
+  const [choiceSending, setChoiceSending] = useState(false);
+  const [choiceError, setChoiceError] = useState<string | null>(null);
+  const [paneSummaries, setPaneSummaries] = useState<
+    { ref: string; title: string; latestLine: string; focused: boolean }[]
+  >([]);
   const pollRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   useEffect(() => {
@@ -120,7 +141,7 @@ export function App() {
 
     const poll = async () => {
       try {
-        const text = await readText(currentWorkspace);
+        const text = await readText({ workspaceRef: currentWorkspace });
         setTermContent(text);
       } catch (err) {
         console.error("[app] Poll error:", err);
@@ -159,6 +180,12 @@ export function App() {
     onSwipeRight,
   });
 
+  const paneSwipeRef = useSwipe({
+    onSwipeLeft,
+    onSwipeRight,
+    pointers: 1,
+  });
+
   const [isDesktop, setIsDesktop] = useState(
     typeof window !== "undefined" && window.innerWidth >= DESKTOP_BREAKPOINT
   );
@@ -175,15 +202,79 @@ export function App() {
 
   const openComposer = useCallback(() => {
     setKeyModalOpen(false);
+    setPanePickerOpen(false);
+    setChoiceModalOpen(false);
     setSendError(null);
     setComposerOpen(true);
   }, []);
 
+  const handleTerminalTap = useCallback(() => {
+    const prompt = parseTerminalChoices(termContent);
+    if (prompt) {
+      setComposerOpen(false);
+      setKeyModalOpen(false);
+      setPanePickerOpen(false);
+      setChoiceError(null);
+      setChoicePrompt(prompt);
+      setChoiceModalOpen(true);
+      return;
+    }
+
+    openComposer();
+  }, [openComposer, termContent]);
+
   const openKeyModal = useCallback(() => {
     setComposerOpen(false);
+    setPanePickerOpen(false);
+    setChoiceModalOpen(false);
     setKeyError(null);
     setKeyModalOpen(true);
   }, []);
+
+  const openPanePicker = useCallback(async () => {
+    setComposerOpen(false);
+    setKeyModalOpen(false);
+    setChoiceModalOpen(false);
+    setPanePickerOpen(true);
+    setPanePickerLoading(true);
+    setPanePickerError(null);
+
+    try {
+      const tree = await getTree();
+      const summaries = await Promise.all(
+        panes.map(async (pane) => {
+          const title =
+            findSurfaceTitle(tree, pane.selected_surface_ref) ??
+            pane.selected_surface_ref ??
+            pane.ref;
+          let latestLine = "";
+
+          try {
+            const text = await readText({
+              surfaceRef: pane.selected_surface_ref,
+              workspaceRef: currentWorkspace ?? undefined,
+            });
+            latestLine = getLatestNonEmptyLine(text);
+          } catch {}
+
+          return {
+            ref: pane.ref,
+            title,
+            latestLine,
+            focused: pane.ref === currentPane,
+          };
+        })
+      );
+
+      setPaneSummaries(summaries);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setPanePickerError(message);
+      setPaneSummaries([]);
+    } finally {
+      setPanePickerLoading(false);
+    }
+  }, [currentPane, currentWorkspace, getTree, panes, readText]);
 
   const closeComposer = useCallback(() => {
     if (sending) return;
@@ -196,6 +287,18 @@ export function App() {
     setKeyModalOpen(false);
     setKeyError(null);
   }, [keySending]);
+
+  const closePanePicker = useCallback(() => {
+    if (panePickerLoading) return;
+    setPanePickerOpen(false);
+    setPanePickerError(null);
+  }, [panePickerLoading]);
+
+  const closeChoiceModal = useCallback(() => {
+    if (choiceSending) return;
+    setChoiceModalOpen(false);
+    setChoiceError(null);
+  }, [choiceSending]);
 
   const handleSubmitComposer = useCallback(async () => {
     if (sending) return;
@@ -217,7 +320,7 @@ export function App() {
       await sendText({ surfaceRef, workspaceRef }, payload);
 
       if (workspaceRef) {
-        const text = await readText(workspaceRef);
+        const text = await readText({ workspaceRef });
         setTermContent(text);
       }
 
@@ -249,7 +352,7 @@ export function App() {
         await sendKey({ surfaceRef, workspaceRef }, keyValue);
 
         if (workspaceRef) {
-          const text = await readText(workspaceRef);
+          const text = await readText({ workspaceRef });
           setTermContent(text);
         }
 
@@ -262,6 +365,72 @@ export function App() {
       }
     },
     [currentPaneInfo, currentWorkspace, keySending, readText, sendKey]
+  );
+
+  const handleSelectPaneFromPicker = useCallback(
+    async (paneRef: string) => {
+      await focusPane(paneRef, currentWorkspace ?? undefined);
+      setPanePickerOpen(false);
+      setPanePickerError(null);
+    },
+    [currentWorkspace, focusPane]
+  );
+
+  const handleSelectTerminalChoice = useCallback(
+    async (option: TerminalChoiceOption) => {
+      if (choiceSending) return;
+
+      const surfaceRef = currentPaneInfo?.selected_surface_ref;
+      const workspaceRef = currentWorkspace ?? undefined;
+      if (!surfaceRef && !workspaceRef) {
+        setChoiceError("No active terminal target is available.");
+        return;
+      }
+
+      try {
+        setChoiceSending(true);
+        setChoiceError(null);
+
+        const currentSelectedIndex = choicePrompt?.selectedIndex ?? null;
+        const targetIndex = choicePrompt?.options.findIndex((item) => item.index === option.index) ?? -1;
+        if (currentSelectedIndex !== null && currentSelectedIndex >= 0 && targetIndex >= 0) {
+          const delta = targetIndex - currentSelectedIndex;
+          const directionKey = delta >= 0 ? "down" : "up";
+          for (let i = 0; i < Math.abs(delta); i += 1) {
+            await sendKey({ surfaceRef, workspaceRef }, directionKey);
+          }
+          await sendKey({ surfaceRef, workspaceRef }, "enter");
+        } else if (option.kind === "input") {
+          await sendText({ surfaceRef, workspaceRef }, `${option.token}\n`);
+        } else {
+          const token = option.token;
+          if (token === "esc" || token === "escape") {
+            await sendKey({ surfaceRef, workspaceRef }, "escape");
+          } else if (token === "enter" || token === "return") {
+            await sendKey({ surfaceRef, workspaceRef }, "enter");
+          } else {
+            await sendText({ surfaceRef, workspaceRef }, token);
+          }
+        }
+
+        if (workspaceRef) {
+          const text = await readText({ workspaceRef });
+          setTermContent(text);
+        }
+
+        setChoiceModalOpen(false);
+        if (option.kind === "input") {
+          setComposerText("");
+          setComposerOpen(true);
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        setChoiceError(message);
+      } finally {
+        setChoiceSending(false);
+      }
+    },
+    [choicePrompt, choiceSending, currentPaneInfo, currentWorkspace, readText, sendKey, sendText]
   );
 
   return (
@@ -305,13 +474,15 @@ export function App() {
           showMenuButton={!isDesktop}
         />
 
-        <Terminal content={termContent} gestureRef={gestureRef} onOpenComposer={openComposer} />
+        <Terminal content={termContent} gestureRef={gestureRef} onOpenComposer={handleTerminalTap} />
 
         <StatusBar
           status={status}
           paneName={currentPaneInfo?.ref ?? currentPane}
           paneIndex={panes.findIndex((p) => p.ref === currentPane)}
           paneCount={panes.length}
+          paneControlRef={paneSwipeRef}
+          onOpenPanePicker={openPanePicker}
         />
       </div>
 
@@ -332,6 +503,24 @@ export function App() {
         options={[...SPECIAL_KEYS]}
         onClose={closeKeyModal}
         onSelect={handleSendKey}
+      />
+
+      <PanePickerModal
+        open={panePickerOpen}
+        loading={panePickerLoading}
+        error={panePickerError}
+        panes={paneSummaries}
+        onClose={closePanePicker}
+        onSelect={handleSelectPaneFromPicker}
+      />
+
+      <ChoiceModal
+        open={choiceModalOpen}
+        prompt={choicePrompt}
+        sending={choiceSending}
+        error={choiceError}
+        onClose={closeChoiceModal}
+        onSelect={handleSelectTerminalChoice}
       />
     </div>
   );
