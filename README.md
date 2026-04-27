@@ -56,11 +56,30 @@ Open `http://<your-host>:3456` in Safari and add to home screen.
 
 ## Configuration
 
+Copy `server/.env.example` to `server/.env` and adjust as needed — Bun loads it automatically.
+
 | Environment Variable | Default | Description |
 |---|---|---|
 | `PORT` | `3456` | Bridge server port |
 | `CMUX_SOCKET_PATH` | `~/Library/Application Support/cmux/cmux.sock` | cmux Unix socket path |
 | `CMUX_BIN_PATH` | `/Applications/cmux.app/Contents/Resources/bin/cmux` | cmux binary path |
+| `CLOUDFLARE_TUNNEL_ENABLED` | `false` | Spawn a Cloudflare Tunnel for the bridge server |
+| `CLOUDFLARE_TUNNEL_TOKEN` | _(empty)_ | If set, runs the named tunnel matching that token. If empty, a free Quick Tunnel (`*.trycloudflare.com`) is started instead |
+| `CLOUDFLARED_BIN` | `cloudflared` | Path to the `cloudflared` binary |
+| `NGROK_ENABLED` | `false` | Spawn an ngrok tunnel for the bridge server |
+| `NGROK_AUTHTOKEN` | _(empty)_ | If set, ngrok is started with this authtoken. If empty, ngrok uses the authtoken already configured on the system (`ngrok config add-authtoken <token>`) |
+| `NGROK_BIN` | `ngrok` | Path to the `ngrok` binary |
+
+### Tunneling
+
+When `CLOUDFLARE_TUNNEL_ENABLED` or `NGROK_ENABLED` is `true`, the bridge server spawns the corresponding CLI as a child process and prints the public URL to its log output:
+
+```
+[cloudflared] public URL: https://random-words.trycloudflare.com
+[ngrok] public URL: https://abcd-1-2-3-4.ngrok-free.app
+```
+
+Both tunnels can be enabled simultaneously. Without a token, each provider's free tier is used (Cloudflare Quick Tunnels require no account; ngrok still requires a free account, but the authtoken can be supplied either via `NGROK_AUTHTOKEN` or once-globally with `ngrok config add-authtoken`).
 
 ## Development
 

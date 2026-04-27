@@ -2,6 +2,7 @@ import { join } from "path";
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { health } from "./health";
+import { startTunnels } from "./tunnels";
 import { createWebSocketHandler } from "./ws";
 
 const app = new Hono();
@@ -35,3 +36,5 @@ const server = Bun.serve({
 });
 
 console.log(`[server] cmux-remote bridge running on http://localhost:${server.port}`);
+
+startTunnels(server.port ?? port);
