@@ -6,11 +6,12 @@ import { applyTerminalHighlights } from "../lib/terminal-highlights";
 
 interface TerminalProps {
   content: string;
+  activeTarget: string | null;
   gestureRef: (el: HTMLDivElement | null) => void;
   onOpenComposer: () => void;
 }
 
-export function Terminal({ content, gestureRef, onOpenComposer }: TerminalProps) {
+export function Terminal({ content, activeTarget, gestureRef, onOpenComposer }: TerminalProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const termRef = useRef<XTerm | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
@@ -57,6 +58,7 @@ export function Terminal({ content, gestureRef, onOpenComposer }: TerminalProps)
 
     const resizeObserver = new ResizeObserver(() => {
       fit.fit();
+      term.scrollToBottom();
     });
     resizeObserver.observe(containerRef.current);
 
@@ -79,8 +81,14 @@ export function Terminal({ content, gestureRef, onOpenComposer }: TerminalProps)
     const cleaned = content.split("\n").map((line) => line.trimEnd()).join("\n");
     const highlighted = applyTerminalHighlights(cleaned);
     term.clear();
-    term.write(highlighted);
+    term.write(highlighted, () => {
+      term.scrollToBottom();
+    });
   }, [content]);
+
+  useEffect(() => {
+    termRef.current?.scrollToBottom();
+  }, [activeTarget]);
 
   const setRefs = useCallback(
     (el: HTMLDivElement | null) => {

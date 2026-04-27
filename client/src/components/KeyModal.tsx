@@ -1,7 +1,7 @@
 interface KeyOption {
   label: string;
   keyValue: string;
-  description: string;
+  description?: string;
 }
 
 interface KeyModalProps {
@@ -99,28 +99,31 @@ export function KeyModal({
                 border: "1px solid #31415f",
                 backgroundColor: "#0b1324",
                 color: "#e0e0e0",
-                padding: "12px 12px 10px",
+                padding: option.description ? "12px 12px 10px" : "10px 12px",
                 cursor: sending ? "default" : "pointer",
               }}
             >
               <div
                 style={{
-                  fontSize: 13,
+                  fontSize: option.description ? 13 : 18,
                   fontWeight: 600,
+                  textAlign: option.description ? "left" : "center",
                 }}
               >
                 {option.label}
               </div>
-              <div
-                style={{
-                  marginTop: 6,
-                  fontSize: 11,
-                  color: "#8d97b5",
-                  lineHeight: 1.4,
-                }}
-              >
-                {option.description}
-              </div>
+              {option.description && (
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 11,
+                    color: "#8d97b5",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {option.description}
+                </div>
+              )}
             </button>
           ))}
         </div>
@@ -151,7 +154,7 @@ export function KeyModal({
               color: "#8d97b5",
             }}
           >
-            {sending ? "Sending key..." : "Choose a key to send immediately."}
+            {sending ? "Sending..." : "Choose an action to send immediately."}
           </div>
           <button
             type="button"

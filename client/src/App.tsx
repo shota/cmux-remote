@@ -18,18 +18,29 @@ import {
 } from "./lib/terminal-choices";
 
 const POLL_INTERVAL = 1000;
+const STOP_AI_KEY = "stop-ai";
+const STOP_AI_STEP_DELAY = 300;
 const SPECIAL_KEYS = [
+  {
+    label: "Stop AI",
+    keyValue: STOP_AI_KEY,
+    description: "Send Ctrl+C twice, then Esc to stop Claude Code or Codex.",
+  },
   { label: "Ctrl+C", keyValue: "ctrl+c", description: "Interrupt the current process." },
   { label: "Ctrl+D", keyValue: "ctrl+d", description: "Send EOF to the current shell or process." },
   { label: "Ctrl+Z", keyValue: "ctrl+z", description: "Suspend the foreground process." },
   { label: "Esc", keyValue: "escape", description: "Cancel prompts or exit modes like vim insert mode." },
   { label: "Tab", keyValue: "tab", description: "Trigger completion or move focus forward." },
   { label: "Enter", keyValue: "enter", description: "Submit the current command line." },
-  { label: "Up", keyValue: "up", description: "Recall previous command history." },
-  { label: "Down", keyValue: "down", description: "Move down through command history." },
-  { label: "Left", keyValue: "left", description: "Move cursor left." },
-  { label: "Right", keyValue: "right", description: "Move cursor right." },
+  { label: "↑", keyValue: "up" },
+  { label: "↓", keyValue: "down" },
+  { label: "←", keyValue: "left" },
+  { label: "→", keyValue: "right" },
 ] as const;
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export function App() {
   const {
@@ -349,7 +360,15 @@ export function App() {
       try {
         setKeySending(true);
         setKeyError(null);
-        await sendKey({ surfaceRef, workspaceRef }, keyValue);
+        if (keyValue === STOP_AI_KEY) {
+          await sendKey({ surfaceRef, workspaceRef }, "ctrl+c");
+          await wait(STOP_AI_STEP_DELAY);
+          await sendKey({ surfaceRef, workspaceRef }, "ctrl+c");
+          await wait(STOP_AI_STEP_DELAY);
+          await sendKey({ surfaceRef, workspaceRef }, "escape");
+        } else {
+          await sendKey({ surfaceRef, workspaceRef }, keyValue);
+        }
 
         if (workspaceRef) {
           const text = await readText({ workspaceRef });
@@ -474,7 +493,12 @@ export function App() {
           showMenuButton={!isDesktop}
         />
 
-        <Terminal content={termContent} gestureRef={gestureRef} onOpenComposer={handleTerminalTap} />
+        <Terminal
+          content={termContent}
+          activeTarget={currentPane ? `${currentWorkspace ?? ""}:${currentPane}` : currentWorkspace}
+          gestureRef={gestureRef}
+          onOpenComposer={handleTerminalTap}
+        />
 
         <StatusBar
           status={status}

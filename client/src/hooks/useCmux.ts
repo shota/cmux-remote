@@ -99,7 +99,8 @@ export function useCmux() {
 
   const listPanes = useCallback(async (workspaceRef?: string) => {
     const params: Record<string, unknown> = {};
-    if (workspaceRef) params.workspace_ref = workspaceRef;
+    // cmux socket RPC expects this field name, but accepts workspace refs as values.
+    if (workspaceRef) params.workspace_id = workspaceRef;
     const result = (await rpc("pane.list", params)) as { panes: Pane[] };
     const paneList = result.panes ?? [];
     setPanes(paneList);
