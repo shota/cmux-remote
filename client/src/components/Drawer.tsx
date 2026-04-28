@@ -2,8 +2,10 @@ import type { CmuxNotification, Workspace } from "../lib/cmux-rpc";
 
 const SIDEBAR_WIDTH = 220;
 const DESKTOP_BREAKPOINT = 768;
+const DESKTOP_MEDIA_QUERY = `(min-width: ${DESKTOP_BREAKPOINT}px) and (hover: hover) and (pointer: fine)`;
 
 interface DrawerProps {
+  isDesktop: boolean;
   open: boolean;
   workspaces: Workspace[];
   currentWorkspace: string | null;
@@ -228,7 +230,7 @@ function WorkspaceList({
   notifications,
   onSelect,
   onClose,
-}: Omit<DrawerProps, "open">) {
+}: Omit<DrawerProps, "open" | "isDesktop">) {
   const unreadCounts = unreadCountByWorkspace(notifications);
   const latestNotifs = latestNotificationByWorkspace(notifications);
 
@@ -266,9 +268,10 @@ function WorkspaceList({
   );
 }
 
-export { SIDEBAR_WIDTH, DESKTOP_BREAKPOINT };
+export { SIDEBAR_WIDTH, DESKTOP_BREAKPOINT, DESKTOP_MEDIA_QUERY };
 
 export function Drawer({
+  isDesktop,
   open,
   workspaces,
   currentWorkspace,
@@ -276,8 +279,6 @@ export function Drawer({
   onSelect,
   onClose,
 }: DrawerProps) {
-  const isDesktop = typeof window !== "undefined" && window.innerWidth >= DESKTOP_BREAKPOINT;
-
   const sidebarContent = (
     <WorkspaceList
       workspaces={workspaces}
@@ -303,6 +304,8 @@ export function Drawer({
           display: "flex",
           flexDirection: "column",
           paddingTop: "env(safe-area-inset-top)",
+          paddingLeft: "env(safe-area-inset-left)",
+          paddingRight: "env(safe-area-inset-right)",
           zIndex: 50,
         }}
       >
@@ -345,7 +348,7 @@ export function Drawer({
           top: 0,
           left: 0,
           bottom: 0,
-          width: 260,
+          width: "calc(260px + env(safe-area-inset-left))",
           backgroundColor: "#0f1729",
           transform: open ? "translateX(0)" : "translateX(-100%)",
           transition: "transform 0.2s ease-out",
@@ -353,6 +356,8 @@ export function Drawer({
           display: "flex",
           flexDirection: "column",
           paddingTop: "env(safe-area-inset-top)",
+          paddingLeft: "env(safe-area-inset-left)",
+          paddingRight: "env(safe-area-inset-right)",
         }}
       >
         {sidebarContent}

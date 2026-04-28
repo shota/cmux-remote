@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, useRef } from "react";
 import { Terminal } from "./components/Terminal";
 import { Header } from "./components/Header";
-import { Drawer, SIDEBAR_WIDTH, DESKTOP_BREAKPOINT } from "./components/Drawer";
+import { Drawer, SIDEBAR_WIDTH, DESKTOP_MEDIA_QUERY } from "./components/Drawer";
 import { StatusBar } from "./components/StatusBar";
 import { ComposerModal } from "./components/ComposerModal";
 import { KeyModal } from "./components/KeyModal";
@@ -198,11 +198,11 @@ export function App() {
   });
 
   const [isDesktop, setIsDesktop] = useState(
-    typeof window !== "undefined" && window.innerWidth >= DESKTOP_BREAKPOINT
+    typeof window !== "undefined" && window.matchMedia(DESKTOP_MEDIA_QUERY).matches
   );
 
   useEffect(() => {
-    const mq = window.matchMedia(`(min-width: ${DESKTOP_BREAKPOINT}px)`);
+    const mq = window.matchMedia(DESKTOP_MEDIA_QUERY);
     const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
@@ -212,6 +212,7 @@ export function App() {
   const currentPaneInfo = panes.find((p) => p.ref === currentPane);
 
   const openComposer = useCallback(() => {
+    setDrawerOpen(false);
     setKeyModalOpen(false);
     setPanePickerOpen(false);
     setChoiceModalOpen(false);
@@ -235,6 +236,7 @@ export function App() {
   }, [openComposer, termContent]);
 
   const openKeyModal = useCallback(() => {
+    setDrawerOpen(false);
     setComposerOpen(false);
     setPanePickerOpen(false);
     setChoiceModalOpen(false);
@@ -459,12 +461,15 @@ export function App() {
         height: "var(--app-height)",
         width: "var(--app-width)",
         paddingTop: "env(safe-area-inset-top)",
+        paddingLeft: "env(safe-area-inset-left)",
+        paddingRight: "env(safe-area-inset-right)",
         backgroundColor: "#1a1a2e",
         color: "#e0e0e0",
         overflow: "hidden",
       }}
     >
       <Drawer
+        isDesktop={isDesktop}
         open={drawerOpen}
         workspaces={workspaces}
         currentWorkspace={currentWorkspace}

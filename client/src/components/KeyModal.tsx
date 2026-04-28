@@ -30,12 +30,12 @@ export function KeyModal({
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 30,
+        zIndex: 140,
         display: "flex",
         alignItems: "flex-end",
         justifyContent: "center",
         backgroundColor: "rgba(7, 10, 20, 0.66)",
-        padding: "16px 12px calc(env(safe-area-inset-bottom) + 12px)",
+        padding: "16px calc(env(safe-area-inset-right) + 12px) calc(env(safe-area-inset-bottom) + 12px) calc(env(safe-area-inset-left) + 12px)",
       }}
     >
       <div
